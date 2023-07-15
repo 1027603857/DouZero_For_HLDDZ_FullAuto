@@ -144,9 +144,9 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
         # -------------------
         self.shouldExit = 0  # 通知上一轮记牌结束
         self.card_play_model_path_dict = {
-            'landlord': "baselines/douzero_WP/landlord.ckpt",
-            'landlord_up': "baselines/douzero_WP/landlord_up.ckpt",
-            'landlord_down': "baselines/douzero_WP/landlord_down.ckpt"
+            'landlord': "baselines/resnet/resnet_landlord.ckpt",
+            'landlord_up': "baselines/resnet/resnet_landlord_up.ckpt",
+            'landlord_down': "baselines/resnet/resnet_landlord_down.ckpt"
         }
         self.card_play_wp_model_path = {
             'landlord': "baselines/douzero_WP/landlord.ckpt",
@@ -759,7 +759,7 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
         regions = [
             (1122, 585, 1122 + 30, 585 + 30),  # 开始游戏右上
             (763, 625, 763 + 30, 625 + 30),  # 自家出牌上方
-            (785, 433, 1013, 578),  # 经典玩法新手场 对家使用
+            (478, 433, 1013, 578),  # 经典玩法新手场 对家使用
             (880, 540, 880 + 20, 540 + 20)  # 炸弹时使用，正中央
         ]
         img, _ = helper.Screenshot()
