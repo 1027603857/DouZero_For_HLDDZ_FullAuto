@@ -45,7 +45,7 @@ AllCards = ['rD', 'bX', 'b2', 'r2', 'bA', 'rA', 'bK', 'rK', 'bQ', 'rQ', 'bJ', 'r
             'b9', 'r9', 'b8', 'r8', 'b7', 'r7', 'b6', 'r6', 'b5', 'r5', 'b4', 'r4', 'b3', 'r3']
 
 helper = GameHelper()
-helper.ScreenZoomRate = 1.25
+helper.ScreenZoomRate = 1
 
 def manual_landlord_requirements(cards_str):
     counter = collections.Counter(cards_str)
@@ -144,9 +144,9 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
         # -------------------
         self.shouldExit = 0  # 通知上一轮记牌结束
         self.card_play_model_path_dict = {
-            'landlord': "baselines/resnet/resnet_landlord.ckpt",
-            'landlord_up': "baselines/resnet/resnet_landlord_up.ckpt",
-            'landlord_down': "baselines/resnet/resnet_landlord_down.ckpt"
+            'landlord': "baselines/douzero_WP/landlord.ckpt",
+            'landlord_up': "baselines/douzero_WP/landlord_up.ckpt",
+            'landlord_down': "baselines/douzero_WP/landlord_down.ckpt"
         }
         self.card_play_wp_model_path = {
             'landlord': "baselines/douzero_WP/landlord.ckpt",
@@ -280,7 +280,6 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
             ani = self.haveAnimation(ms)
         if iter_cnt > 0:
             print("\t动画结束", end="")
-        print()
         self.sleep(600)
 
     def real_to_env(self, cards):
@@ -311,14 +310,27 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
         need_newline = 2
         print("等待", nick, "出牌", end="")
         while self.RunGame and pass_flag is None:
-            QtWidgets.QApplication.processEvents(QEventLoop.AllEvents, 10)
-            img, _ = helper.Screenshot()  # 只用一次截图，find_other_cards 和 LocateOnScreen 添加了 img 参数
-            need_newline += 1
-            if need_newline % 2 == 0:
-                print(".", end="")
-                need_newline = 0
-            st = time.time()
-            cards = self.find_other_cards(pos=playPos, img=img)  # img
+            for i in range(50):
+                QtWidgets.QApplication.processEvents(QEventLoop.AllEvents, 10)
+                img, _ = helper.Screenshot()  # 只用一次截图，find_other_cards 和 LocateOnScreen 添加了 img 参数
+                need_newline += 1
+                if need_newline % 2 == 0:
+                    print(".", end="")
+                    need_newline = 0
+                st = time.time()
+                cards = self.find_other_cards(pos=playPos, img=img)  # img
+                envs = [RealCard2EnvCard[c] for c in list(cards)]
+                envs_real = self.other_hand_cards[:]
+                has_flag = 1
+                for e in envs:  # 检查牌是否识别错误
+                    try:
+                        envs_real.remove(e)
+                    except ValueError:
+                        has_flag = 0
+                        break  # 报错说明重复识别，需要重新识别
+                if has_flag:
+                    break
+                self.sleep(300)
             move_type = get_move_type(self.real_to_env(cards))
 
             last_played_cards = self.upper_played_cards_real if nick == "上家" else self.lower_played_cards_real
@@ -617,20 +629,28 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
         three_landlord_cards_real = ""
         for card in AllCards:
             result = pyautogui.locateAll(needleImage=helper.Pics['o' + card], haystackImage=img,
-                                         confidence=self.ThreeLandlordCardsConfidence)
+                                         confidence=self.ThreeLandlordCardsConfidence, grayscale=False)
             three_landlord_cards_real += card[1] * self.cards_filter(list(result), self.OtherFilter)
         if len(three_landlord_cards_real) > 3:
             three_landlord_cards_real = ""
             for card in AllCards:
                 result = pyautogui.locateAll(needleImage=helper.Pics['o' + card], haystackImage=img,
-                                             confidence=self.ThreeLandlordCardsConfidence - 0.1)
+                                             confidence=self.ThreeLandlordCardsConfidence + 0.09, grayscale=False)
+                three_landlord_cards_real += card[1] * self.cards_filter(list(result), self.OtherFilter)
+        elif len(three_landlord_cards_real) < 3:
+            three_landlord_cards_real = ""
+            for card in AllCards:
+                result = pyautogui.locateAll(needleImage=helper.Pics['o' + card], haystackImage=img,
+                                             confidence=self.ThreeLandlordCardsConfidence - 0.05, grayscale=False)
                 three_landlord_cards_real += card[1] * self.cards_filter(list(result), self.OtherFilter)
         if len(three_landlord_cards_real) < 3:
             three_landlord_cards_real = ""
             for card in AllCards:
                 result = pyautogui.locateAll(needleImage=helper.Pics['o' + card], haystackImage=img,
-                                             confidence=self.ThreeLandlordCardsConfidence + 0.1)
+                                             confidence=self.ThreeLandlordCardsConfidence + 0.05, grayscale=False)
                 three_landlord_cards_real += card[1] * self.cards_filter(list(result), self.OtherFilter)
+        if len(three_landlord_cards_real) > 3:
+            three_landlord_cards_real = string[-3:]
         return three_landlord_cards_real
 
     def find_my_cards(self, pos):
@@ -739,7 +759,7 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
         regions = [
             (1122, 585, 1122 + 30, 585 + 30),  # 开始游戏右上
             (763, 625, 763 + 30, 625 + 30),  # 自家出牌上方
-            (478, 433, 852, 630),  # 经典玩法新手场 对家使用
+            (785, 433, 1013, 578),  # 经典玩法新手场 对家使用
             (880, 540, 880 + 20, 540 + 20)  # 炸弹时使用，正中央
         ]
         img, _ = helper.Screenshot()
