@@ -319,7 +319,7 @@ class MyPyQT_Form(QtWidgets.QWidget, Ui_Form):
                     need_newline = 0
                 st = time.time()
                 cards = self.find_other_cards(pos=playPos, img=img)  # img
-                envs = [RealCard2EnvCard[c] for c in list(cards)]
+                envs = self.real_to_env(cards)
                 envs_real = self.other_hand_cards[:]
                 has_flag = 1
                 for e in envs:  # 检查牌是否识别错误
